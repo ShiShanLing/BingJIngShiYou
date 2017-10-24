@@ -1,0 +1,29 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="zh-CN" dir="ltr">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+</head>
+<body>
+    <input type="button" value="get_app_version" onclick="get_app_version()" />
+</body>
+</html>
+
+<script type="text/javascript">
+
+    //页面加载的时候也执行
+    get_app_version();
+    
+    //获取版本
+    function get_app_version() {
+    
+        try {
+            alert("异常=获取版本" );
+            var ret = android.get_app_version();
+            alert(ret);
+        }
+        catch (e) {
+            alert("异常=" + e);
+        }
+    }
+</script>
+

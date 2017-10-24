@@ -1,0 +1,207 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="zh-CN" dir="ltr">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<script type="text/javascript">   
+
+function showAndroidToast(toast) {       
+	android.showToast(toast);   
+	 }
+function web_go_back_callback() {       
+	var text=document.getElementById("aaaa");
+	text.innerHTML ="web_go_back_callback()  doing ";
+}
+function app_close() {       
+	android.app_close();   
+}
+function db_insert() {       
+    android.db_insert("wq 1028 key","1028 value");   
+}
+
+function db_delete() {       
+android.db_delete("wq 1028 key");   
+}
+
+function db_update() {       
+android.db_update("wq 1028 key","1028 value change");   
+}
+
+function db_select_all() {  
+	
+	var content=android.db_select_all(); 
+	
+	var text=document.getElementById("aaaa");
+	
+	text.innerHTML =content;
+}
+function getUser() {  
+	
+	var content=android.getUser(); 
+	
+	var text=document.getElementById("aaaa");
+	
+	text.innerHTML =content;
+}
+function saveUser() {  
+	
+	android.saveUser("wq 1102 hhh--==","wq-password111amdjaMAD=1-1=");
+}
+function clearUser() { 
+	android.clearUser(); 
+}
+function web_go_back() { 
+	android.web_go_back(); 
+}
+function get_notify_state() { 
+	var state=android.get_notify_state(); 
+	var text=document.getElementById("aaaa");
+	text.innerHTML =state;
+}
+function set_notify_close() { 
+	android.set_notify_close(); 
+}
+function set_notify_open() { 
+	android.set_notify_open(); 
+}
+function set_can_callback() { 
+	android.set_can_callback(); 
+}
+function set_no_callback() { 
+	android.set_no_callback(); 
+}
+
+function setExtparam() { 
+	android.setExtparam("hello setExtparam   wq aini ya ~~"); 
+}
+function deleteExtparam() { 
+	android.deleteExtparam(); 
+}
+function getExtparam() { 
+	android.getExtparam(); 
+}
+
+function setWebServiceURL() { 
+	android.setWebServiceURL("http://mylike,...aj12"); 
+}
+function deleteWebServiceURL() { 
+	android.deleteWebServiceURL(); 
+}
+function getWebServiceURL() { 
+	android.getWebServiceURL(); 
+}
+
+function get_app_version() { 
+	android.get_app_version(); 
+}
+function notifyTailoringCompressImageBase64() { 
+	android.notifyTailoringCompressImageBase64("/storage/emulated/0/DCIM/Camera/20160304_150942.jpg",true,0.1,0.1,0.5,0.5); 
+}
+
+function tailoringCompressImageBase64Callback(filePath,isSuccess) { 
+
+var text=document.getElementById("aaaa");
+var str=android.getImageResultBase64(filePath);
+text.innerHTML = str;
+}
+
+function choosePhoneImage() { 
+	android.choosePhoneImage("choosePhoneImageCallbackTest");
+}
+
+function choosePhoneImageCallbackTest(path) { 
+	var str=android.getTailoringCompressImageBase64(path,true,0.1,0.1,0.5,0.5);
+	var text=document.getElementById("aaaa");
+	text.innerHTML = path+","+str;
+
+
+}
+
+</script>
+
+</head>
+<body>
+
+<input type="button" value="db_insert"
+onClick="db_insert()" />
+
+<input type="button" value="db_delete"
+onClick="db_delete()" />
+
+<input type="button" value="db_update"
+onClick="db_update()" />
+
+<input type="button" value="db_select_all"
+onClick="db_select_all()" />
+
+<input type="button" value="getUser"
+onClick="getUser()" />
+
+<input type="button" value="clearUser"
+onClick="clearUser()" />
+
+<input type="button" value="saveUser"
+onClick="saveUser()" />
+
+<input type="button" value="web_go_back"
+onClick="web_go_back()" />
+<input type="button" value="app_close"
+onClick="app_close()" />
+<input type="button" value="set_notify_open"
+onClick="set_notify_open()" />
+<input type="button" value="set_notify_close"
+onClick="set_notify_close()" />
+<input type="button" value="get_notify_state"
+onClick="get_notify_state()" />
+
+
+<input type="button" value="set_can_callback"
+onClick="set_can_callback()" />
+<input type="button" value="set_no_callback"
+onClick="set_no_callback()" />
+
+
+<input type="button" value="setExtparam"
+onClick="setExtparam()" />
+<input type="button" value="deleteExtparam"
+onClick="deleteExtparam()" />
+<input type="button" value="getExtparam"
+onClick="getExtparam()" />
+
+<input type="button" value="setWebServiceURL"
+onClick="setWebServiceURL()" />
+<input type="button" value="deleteWebServiceURL"
+onClick="deleteWebServiceURL()" />
+<input type="button" value="getWebServiceURL"
+onClick="getWebServiceURL()" />
+
+
+<input type="button" value="get_app_version"
+onClick="get_app_version()" />
+
+<input type="button" value="notifyTailoringCompressImageBase64" 
+onClick="notifyTailoringCompressImageBase64()" />
+
+<input type="button" value="choosePhoneImage" 
+onClick="choosePhoneImage()" />
+
+<a href="test1">test_callback</a>
+
+
+
+<div style="width:auto;height:auto" id="aaaa"></div>
+
+
+<input type="button" value="Say hello"
+	onClick="showAndroidToast('Hello Android!')" />
+
+<input name="uploadfile" type="file" accept="image/*">
+<style>
+<!--input{-->
+<!--	padding:14px;-->
+<!--	font-size:24pt;-->
+<!--	margin:20px-->
+<!--}-->
+</style>
+</body>
+</html>

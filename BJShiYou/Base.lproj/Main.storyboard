@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="12121" systemVersion="16G29" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" colorMatched="YES" initialViewController="JTR-xs-o9Z">
+    <device id="retina4_7" orientation="portrait">
+        <adaptation id="fullscreen"/>
+    </device>
+    <dependencies>
+        <deployment identifier="iOS"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="12089"/>
+        <capability name="Constraints to layout margins" minToolsVersion="6.0"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <scenes>
+        <!--1-->
+        <scene sceneID="MX5-vq-dNx">
+            <objects>
+                <viewController title="1" id="XYT-Ys-n2j" customClass="ViewController" sceneMemberID="viewController">
+                    <layoutGuides>
+                        <viewControllerLayoutGuide type="top" id="MWA-ut-ofd"/>
+                        <viewControllerLayoutGuide type="bottom" id="t7u-Bo-oHk"/>
+                    </layoutGuides>
+                    <view key="view" contentMode="scaleToFill" id="3C7-hu-F5z">
+                        <rect key="frame" x="0.0" y="0.0" width="375" height="667"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <webView contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="iTw-ff-6Lg">
+                                <rect key="frame" x="16" y="64" width="343" height="603"/>
+                                <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                            </webView>
+                        </subviews>
+                        <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                        <constraints>
+                            <constraint firstItem="iTw-ff-6Lg" firstAttribute="leading" secondItem="3C7-hu-F5z" secondAttribute="leadingMargin" id="BzS-ka-Dwm"/>
+                            <constraint firstAttribute="bottomMargin" secondItem="iTw-ff-6Lg" secondAttribute="bottom" id="UOp-Is-Z49"/>
+                            <constraint firstAttribute="trailingMargin" secondItem="iTw-ff-6Lg" secondAttribute="trailing" id="Zgy-2h-9Fn"/>
+                            <constraint firstItem="iTw-ff-6Lg" firstAttribute="top" secondItem="MWA-ut-ofd" secondAttribute="bottom" id="nET-Yp-fHi"/>
+                        </constraints>
+                    </view>
+                    <navigationItem key="navigationItem" title="应用" id="wxk-MB-mIC"/>
+                    <simulatedStatusBarMetrics key="simulatedStatusBarMetrics"/>
+                    <connections>
+                        <outlet property="myWebView" destination="iTw-ff-6Lg" id="HLt-Kv-b3p"/>
+                    </connections>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="9Lh-4T-TWb" userLabel="First Responder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="-677.60000000000002" y="973.76311844077964"/>
+        </scene>
+        <!--Navigation Controller-->
+        <scene sceneID="OJn-j0-Vgs">
+            <objects>
+                <navigationController id="JTR-xs-o9Z" sceneMemberID="viewController">
+                    <simulatedStatusBarMetrics key="simulatedStatusBarMetrics"/>
+                    <navigationBar key="navigationBar" contentMode="scaleToFill" id="Rrl-MR-qZd">
+                        <rect key="frame" x="0.0" y="0.0" width="320" height="44"/>
+                        <autoresizingMask key="autoresizingMask"/>
+                    </navigationBar>
+                    <connections>
+                        <segue destination="XYT-Ys-n2j" kind="relationship" relationship="rootViewController" id="lxB-uM-Kjs"/>
+                    </connections>
+                </navigationController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="ayo-dJ-0vO" userLabel="First Responder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="-1340.625" y="981.33802816901391"/>
+        </scene>
+    </scenes>
+</document>

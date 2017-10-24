@@ -1,0 +1,158 @@
+//
+//  PhotoEditorsVC.m
+//  JYOnLine
+//
+//  Created by 石山岭 on 2017/8/9.
+//  Copyright © 2017年 com.vstyle. All rights reserved.
+//
+
+#import "PhotoEditorsVC.h"
+#import "LXFDrawBoard.h"
+#import "TextViewController.h"
+@interface PhotoEditorsVC ()<LXFDrawBoardDelegate>
+@property (weak, nonatomic) IBOutlet LXFDrawBoard *drawNoard;
+/** 描述 */
+@property(nonatomic, copy) NSString *desc;
+@end
+
+@implementation PhotoEditorsVC
+
+- (void)viewWillAppear:(BOOL)animated {
+    [super viewWillAppear:animated];
+    self.navigationController.navigationBarHidden = YES;
+}
+- (void)viewWillDisappear:(BOOL)animated {
+    [super viewWillDisappear:animated];
+    self.navigationController.navigationBarHidden = YES;
+}
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    self.drawNoard.image = self.showImage;
+    self.drawNoard.delegate = self;
+    self.drawNoard.brush = [LXFPencilBrush new];
+    self.drawNoard.lineColor = [UIColor redColor];
+    self.drawNoard.lineWidth = 2.5;
+    UIButton *releaseButton = [UIButton buttonWithType:(UIButtonTypeCustom)];
+    
+    releaseButton.frame = CGRectMake(0, 0, 50, 50);
+    [releaseButton setTitle:@"保存" forState:normal];
+    [releaseButton setTitleColor:[UIColor redColor] forState:(UIControlStateNormal)];
+    releaseButton.titleLabel.font = [UIFont systemFontOfSize:17];
+    [releaseButton setTitleColor:[UIColor whiteColor] forState:(UIControlStateNormal)];
+    [releaseButton addTarget:self action:@selector(RegisteredAccount) forControlEvents:UIControlEventTouchUpInside];
+    UIBarButtonItem *releaseButtonItem = [[UIBarButtonItem alloc] initWithCustomView:releaseButton];
+    self.navigationItem.rightBarButtonItem = releaseButtonItem;
+}
+
+- (void)RegisteredAccount {
+    
+   
+}
+
+- (IBAction)linekuandu:(UISlider *)sender {
+    
+    NSLog(@"linekuandu%.2f", sender.value/2);
+    
+    self.drawNoard.lineWidth = sender.value/2;
+}
+
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+}
+- (IBAction)chexiao:(id)sender {
+    [self.drawNoard revoke];
+}
+- (IBAction)fanchexiao:(id)sender {
+    [self.drawNoard redo];
+}
+- (IBAction)qianbi:(id)sender {
+     self.drawNoard.brush = [LXFPencilBrush new];
+}
+- (IBAction)jiantou:(id)sender {
+    self.drawNoard.brush = [LXFArrowBrush new];
+}
+- (IBAction)zhixian:(id)sender {
+    self.drawNoard.brush = [LXFLineBrush new];
+}
+- (IBAction)wenben:(id)sender {
+     self.drawNoard.brush = [LXFTextBrush new];
+}
+- (IBAction)jvxing:(id)sender {
+    self.drawNoard.brush = [LXFRectangleBrush new];
+}
+- (IBAction)yuanxing:(id)sender {
+    
+}
+- (IBAction)hongse:(id)sender {
+    self.drawNoard.lineColor = [UIColor redColor];
+}
+- (IBAction)huangse:(id)sender {
+    self.drawNoard.lineColor = [UIColor yellowColor];
+}
+
+- (IBAction)lanse:(id)sender {
+    self.drawNoard.lineColor = [UIColor blueColor];
+}
+- (IBAction)baocun:(id)sender {
+    UIGraphicsBeginImageContextWithOptions(self.drawNoard.frame.size, NO, 0);
+    CGContextRef ctx = UIGraphicsGetCurrentContext();
+    [self.drawNoard.layer renderInContext:ctx];
+    UIImage *image = UIGraphicsGetImageFromCurrentImageContext();
+    
+    UIGraphicsEndImageContext();
+    self.drawNoard.image = image;
+    
+    if ([_delegate respondsToSelector:@selector(dataTransfer:)]) {
+        [_delegate dataTransfer:image];
+    }
+    
+    [self.navigationController popViewControllerAnimated:YES];
+
+}
+- (IBAction)quxiao:(id)sender {
+    [self.navigationController popViewControllerAnimated:YES];
+}
+- (IBAction)xiangpicha:(id)sender {
+    
+    
+}
+
+
+#pragma mark - LXFDrawBoardDelegate
+- (NSString *)LXFDrawBoard:(LXFDrawBoard *)drawBoard textForDescLabel:(UILabel *)descLabel {
+    
+    //    return [NSString stringWithFormat:@"我的随机数：%d", arc4random_uniform(256)];
+    return self.desc;
+}
+
+- (void)LXFDrawBoard:(LXFDrawBoard *)drawBoard clickDescLabel:(UILabel *)descLabel {
+    descLabel ? self.desc = descLabel.text: nil;
+    [self alterDrawBoardDescLabel];
+}
+
+- (void)alterDrawBoardDescLabel {
+    UIAlertController *alertController = [UIAlertController alertControllerWithTitle:@"添加描述" message:@"" preferredStyle:UIAlertControllerStyleAlert];
+    UIAlertAction *cancelAction = [UIAlertAction actionWithTitle:@"取消" style:UIAlertActionStyleCancel handler:nil];
+    UIAlertAction *okAction = [UIAlertAction actionWithTitle:@"确定" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+        self.desc = alertController.textFields.firstObject.text;
+        [self.drawNoard alterDescLabel];
+    }];
+    
+    [alertController addAction:cancelAction];
+    [alertController addAction:okAction];
+    [alertController addTextFieldWithConfigurationHandler:^(UITextField * _Nonnull textField) {
+        textField.placeholder = @"请输入";
+        textField.text = self.desc;
+    }];
+    
+    [self presentViewController:alertController animated:YES completion:nil];
+}
+
+
+- (UIStatusBarStyle)preferredStatusBarStyle {
+    return UIStatusBarStyleLightContent;
+}
+
+
+
+@end

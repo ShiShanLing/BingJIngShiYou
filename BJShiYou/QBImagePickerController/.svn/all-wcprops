@@ -1,0 +1,107 @@
+K 25
+svn:wc:ra_dav:version-url
+V 97
+/svn/zerosoft/!svn/ver/2194/Development/zhongShiYou/iOS/BJShiYou/BJShiYou/QBImagePickerController
+END
+QBImagePickerAssetViewDelegate.h
+K 25
+svn:wc:ra_dav:version-url
+V 130
+/svn/zerosoft/!svn/ver/2194/Development/zhongShiYou/iOS/BJShiYou/BJShiYou/QBImagePickerController/QBImagePickerAssetViewDelegate.h
+END
+QBImagePickerAssetCellDelegate.h
+K 25
+svn:wc:ra_dav:version-url
+V 130
+/svn/zerosoft/!svn/ver/2194/Development/zhongShiYou/iOS/BJShiYou/BJShiYou/QBImagePickerController/QBImagePickerAssetCellDelegate.h
+END
+QBImagePickerAssetView.h
+K 25
+svn:wc:ra_dav:version-url
+V 122
+/svn/zerosoft/!svn/ver/2194/Development/zhongShiYou/iOS/BJShiYou/BJShiYou/QBImagePickerController/QBImagePickerAssetView.h
+END
+QBImagePickerVideoInfoView.h
+K 25
+svn:wc:ra_dav:version-url
+V 126
+/svn/zerosoft/!svn/ver/2194/Development/zhongShiYou/iOS/BJShiYou/BJShiYou/QBImagePickerController/QBImagePickerVideoInfoView.h
+END
+QBImagePickerAssetCell.h
+K 25
+svn:wc:ra_dav:version-url
+V 122
+/svn/zerosoft/!svn/ver/2194/Development/zhongShiYou/iOS/BJShiYou/BJShiYou/QBImagePickerController/QBImagePickerAssetCell.h
+END
+QBImagePickerAssetView.m
+K 25
+svn:wc:ra_dav:version-url
+V 122
+/svn/zerosoft/!svn/ver/2194/Development/zhongShiYou/iOS/BJShiYou/BJShiYou/QBImagePickerController/QBImagePickerAssetView.m
+END
+QBImagePickerVideoInfoView.m
+K 25
+svn:wc:ra_dav:version-url
+V 126
+/svn/zerosoft/!svn/ver/2194/Development/zhongShiYou/iOS/BJShiYou/BJShiYou/QBImagePickerController/QBImagePickerVideoInfoView.m
+END
+QBImagePickerController.h
+K 25
+svn:wc:ra_dav:version-url
+V 123
+/svn/zerosoft/!svn/ver/2194/Development/zhongShiYou/iOS/BJShiYou/BJShiYou/QBImagePickerController/QBImagePickerController.h
+END
+QBAssetCollectionViewControllerDelegate.h
+K 25
+svn:wc:ra_dav:version-url
+V 139
+/svn/zerosoft/!svn/ver/2194/Development/zhongShiYou/iOS/BJShiYou/BJShiYou/QBImagePickerController/QBAssetCollectionViewControllerDelegate.h
+END
+QBImagePickerAssetCell.m
+K 25
+svn:wc:ra_dav:version-url
+V 122
+/svn/zerosoft/!svn/ver/2194/Development/zhongShiYou/iOS/BJShiYou/BJShiYou/QBImagePickerController/QBImagePickerAssetCell.m
+END
+QBImagePickerController.m
+K 25
+svn:wc:ra_dav:version-url
+V 123
+/svn/zerosoft/!svn/ver/2194/Development/zhongShiYou/iOS/BJShiYou/BJShiYou/QBImagePickerController/QBImagePickerController.m
+END
+QBAssetCollectionViewController.h
+K 25
+svn:wc:ra_dav:version-url
+V 131
+/svn/zerosoft/!svn/ver/2194/Development/zhongShiYou/iOS/BJShiYou/BJShiYou/QBImagePickerController/QBAssetCollectionViewController.h
+END
+QBImagePickerFooterView.h
+K 25
+svn:wc:ra_dav:version-url
+V 123
+/svn/zerosoft/!svn/ver/2194/Development/zhongShiYou/iOS/BJShiYou/BJShiYou/QBImagePickerController/QBImagePickerFooterView.h
+END
+QBImagePickerGroupCell.h
+K 25
+svn:wc:ra_dav:version-url
+V 122
+/svn/zerosoft/!svn/ver/2194/Development/zhongShiYou/iOS/BJShiYou/BJShiYou/QBImagePickerController/QBImagePickerGroupCell.h
+END
+QBAssetCollectionViewController.m
+K 25
+svn:wc:ra_dav:version-url
+V 131
+/svn/zerosoft/!svn/ver/2194/Development/zhongShiYou/iOS/BJShiYou/BJShiYou/QBImagePickerController/QBAssetCollectionViewController.m
+END
+QBImagePickerFooterView.m
+K 25
+svn:wc:ra_dav:version-url
+V 123
+/svn/zerosoft/!svn/ver/2194/Development/zhongShiYou/iOS/BJShiYou/BJShiYou/QBImagePickerController/QBImagePickerFooterView.m
+END
+QBImagePickerGroupCell.m
+K 25
+svn:wc:ra_dav:version-url
+V 122
+/svn/zerosoft/!svn/ver/2194/Development/zhongShiYou/iOS/BJShiYou/BJShiYou/QBImagePickerController/QBImagePickerGroupCell.m
+END

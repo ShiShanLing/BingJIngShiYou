@@ -1,0 +1,788 @@
+//
+//  ViewController.m
+//  BJShiYou
+//
+//  Created by vstyle on 15/11/9.
+//  Copyright (c) 2015年 com.vstyle. All rights reserved.
+//
+
+#import "ViewController.h"
+#import "MJRefresh.h"
+#import "SVProgressHUD.h"
+#import "DatabaseOperations.h"
+#import "WebViewJavascriptBridge.h"
+#import <objc/runtime.h>
+#import "NSObject+BJShiYou.h"
+#import "Header.h"
+#import "WellcomeVC.h"
+#import "TextViewController.h"
+
+
+
+#import "ZYQAssetPickerController.h"
+
+#import <AssetsLibrary/AssetsLibrary.h>  // 必须导入
+#import "QBImagePickerController.h"
+#import <MobileCoreServices/MobileCoreServices.h>
+
+#import <AVFoundation/AVCaptureDevice.h>
+#import <AVFoundation/AVMediaFormat.h>
+#import "AFNetworking.h"
+#import <CoreLocation/CoreLocation.h>
+#import "ScanViewController.h"
+
+
+// 照片原图路径
+#define KOriginalPhotoImagePath [[NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) objectAtIndex:0] stringByAppendingPathComponent:@"OriginalPhotoImages"]
+
+// 视频URL路径
+#define KVideoUrlPath [[NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) objectAtIndex:0] stringByAppendingPathComponent:@"VideoURL"]
+// caches路径
+#define KCachesPath [NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) objectAtIndex:0]
+
+static int returnNum;
+//是否允许发送地理位置  默认否
+static BOOL  positioning;
+//上传图片的时候是否要穿地理位置 因为他的新方法还有应用到项目中 所以用这个方法来判断 如果他调用的新方法那么就上传
+static BOOL  uploadLocation;
+@interface ViewController ()<UINavigationControllerDelegate, UIImagePickerControllerDelegate, UIActionSheetDelegate, CLLocationManagerDelegate,UIWebViewDelegate,JavaScriptObjectExport,QBImagePickerControllerDelegate> {
+    UIView *statusBarBgView;
+    NSMutableArray *imageArray;
+}
+/**
+ *
+ */
+@property (nonatomic, strong) JSContext *context;
+@property (nonatomic,strong) CLLocationManager *manager;
+
+/**
+ *
+ */
+@property (nonatomic, strong)ScanViewController *scanViewController;
+@end
+
+@implementation ViewController
+
+- (void)viewWillAppear:(BOOL)animated{
+    [super viewWillAppear:animated];
+    self.navigationController.navigationBarHidden = YES;
+//    收到返回上一页的通知--》pop回上以页面
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(webGoBack) name:@"Web_Go_Back" object:nil];
+    [self willAnimateRotationToInterfaceOrientation:self.interfaceOrientation duration:1.0f];
+//    判断执不执行callback方法
+    if (![Is EmptyOrNullString:self.theNextPageUrlStr]) {
+        NSString *isCallback = [[NSUserDefaults standardUserDefaults] objectForKey:self.theNextPageUrlStr];
+        if ([isCallback isEqualToString:@"TRUE"]) {
+            DLog(@"执行js的callback方法");
+            [self.myWebView stringByEvaluatingJavaScriptFromString:@"callback();"];
+        }
+    }
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(notifitionUrl:) name:@"NotificationUrl" object:nil];
+    [[UIApplication sharedApplication] setStatusBarStyle:UIStatusBarStyleLightContent animated:NO];
+//    横屏是隐藏信号区背景View
+    if (self.interfaceOrientation == UIInterfaceOrientationLandscapeLeft || self.interfaceOrientation == UIInterfaceOrientationLandscapeRight) {
+        statusBarBgView.hidden = YES;
+    } else {
+        statusBarBgView.hidden = NO;
+    }
+    
+}
+- (void)viewWillDisappear:(BOOL)animated{
+    [super viewWillDisappear:animated];
+    [[NSNotificationCenter defaultCenter] removeObserver:self name:@"Web_Go_Back" object:nil];
+    [[NSNotificationCenter defaultCenter] removeObserver:self name:@"NotificationUrl" object:nil];
+    
+}
+-(void)viewDidAppear:(BOOL)animated{
+    [super viewDidAppear:animated];
+    [self respondsToSelector:@selector(willAnimateFirstHalfOfRotationToInterfaceOrientation:duration:)];
+    
+}
+- (UIStatusBarStyle)preferredStatusBarStyle {
+    return UIStatusBarStyleDefault;
+}
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    [self wellcome];
+    positioning = NO;
+    uploadLocation = NO;
+    // Do any additional setup after loading the view, typically from a nib.
+    returnNum = 0;
+    self.navigationController.navigationBarHidden = YES;
+    if ([Is EmptyOrNullString:self.openUrlStr]) {
+        self.openUrlStr = @"http://123.127.191.221:1000/";
+//        http://123.127.191.221:1000/ 生产地址
+//        http://msptest.zjmicon.com/ 测试地址
+    }
+    self.navigationController.navigationBar.alpha = 0.1;
+    NSURLRequest *request =[NSURLRequest requestWithURL:[NSURL URLWithString:self.openUrlStr]];
+    _myWebView = [[UIWebView alloc] init];
+    _myWebView.frame = CGRectMake(0, 20, self.view.frame.size.width, self.view.frame.size.height-22);
+    _myWebView.delegate = self;
+    [_myWebView loadRequest:request];
+    [self.view addSubview:_myWebView];
+    
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(notifitionUrl:) name:@"NotificationUrl" object:nil];
+//    创建信号去背景View
+    statusBarBgView = [[UIView alloc] init];
+    statusBarBgView.backgroundColor = [UIColor colorWithRed:189/255.0f green:189/255.0f blue:194/255.0f alpha:1.0f];
+    statusBarBgView.frame = CGRectMake(0, 0, [UIScreen mainScreen].bounds.size.width, 20);
+    [self.view addSubview:statusBarBgView];
+    
+    
+    __block ViewController * viewC = self;
+    self.scanViewController = [[ScanViewController alloc] init];
+    
+    _scanViewController.ScanResults = ^(NSString *URL) {
+        viewC.callbcakFunctionName = [NSString stringWithFormat:@"%@('%@');",viewC.callbcakFunctionName,URL];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [viewC callback];//延迟执行某一个方法
+        });
+    };
+}
+#pragma mark — 欢迎页面
+- (void)wellcome{
+    NSInteger wellcomeVersion = [[NSUserDefaults standardUserDefaults] integerForKey:KEY_WELLCOME_VERSION];
+    if (wellcomeVersion < WELLCOME_VERSION) {
+        WellcomeVC *wvc = [[WellcomeVC alloc] init];
+        wvc.modalTransitionStyle = UIModalTransitionStyleCrossDissolve;
+        [self presentViewController:wvc animated:NO completion:nil];
+    }
+    NSLog(@"网络状态--------%d",[Network getNetworkStatus]);
+    if ([Network getNetworkStatus] == 1 || [Network getNetworkStatus] == 4){
+        TextViewController *selectTheNetworkVC = [TextViewController new];
+  //      [self.navigationController pushViewController:selectTheNetworkVC animated:YES];
+    }
+}
+#pragma mark - 接到打开新网页的通知
+- (void)notifitionUrl:(NSNotification*) notification
+{
+    NSDictionary *urlDict = [notification object];//获取到传递的对象
+    NSURL *url = [NSURL URLWithString:urlDict
+                  [@"url"]];
+    NSURLRequest *urlRequest = [NSURLRequest requestWithURL:url];
+    [self.myWebView loadRequest:urlRequest];
+}
+
+- (CGRect)frameForOrientation:(UIInterfaceOrientation)orientation {
+    CGRect frame;
+    if (orientation == UIInterfaceOrientationLandscapeLeft || orientation == UIInterfaceOrientationLandscapeRight) {
+        CGRect bounds = [UIScreen mainScreen].bounds;
+        frame = CGRectMake(bounds.origin.x, bounds.origin.y, bounds.size.width, bounds.size.height);
+        statusBarBgView.hidden = YES;
+    } else {
+        statusBarBgView.hidden = NO;
+        frame = [UIScreen mainScreen].bounds;
+    }
+    return frame;
+}
+#pragma mark -UIWebViewDelegate
+
+- (void)webViewDidStartLoad:(UIWebView *)webView{
+//    [SVProgressHUD show];
+}
+- (void)webView:(UIWebView *)webView didFailLoadWithError:(NSError *)error{
+    [SVProgressHUD dismiss];
+}
+
+- (void)webViewDidFinishLoad:(UIWebView *)webView {
+    self.context = [webView valueForKeyPath:@"documentView.webView.mainFrame.javaScriptContext"];
+    
+    self.context.exceptionHandler = ^(JSContext *context, JSValue *exceptionValue) {
+        context.exception = exceptionValue;
+        NSLog(@"异常信息：%@", exceptionValue);
+    };
+    self.context[@"ios"] = self;
+
+    if (webView.isLoading) {
+        return;
+    }
+    [SVProgressHUD dismiss];
+
+}
+
+
+- (BOOL)webView:(UIWebView *)webView shouldStartLoadWithRequest:(NSURLRequest *)request navigationType:(UIWebViewNavigationType)navigationType {
+    
+    self.context = [webView valueForKeyPath:@"documentView.webView.mainFrame.javaScriptContext"];
+    NSLog(@"shouldStartLoadWithRequest%@", request);
+      self.context.exceptionHandler = ^(JSContext *context, JSValue *exceptionValue) {
+        context.exception = exceptionValue;
+        NSLog(@"异常信息：%@", exceptionValue);
+    };
+    self.context[@"ios"] = self;
+    NSString *urlStr = request.URL.absoluteString;
+    self.theNextPageUrlStr = urlStr;
+    return YES;
+}
+#pragma mark - 返回上一页
+- (void)webGoBack{
+   {
+    }
+ 
+}
+static const char encodingTable[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+- (void)log:(NSString*)string {
+    DLog(@"js: %@", string);
+}
+- (void)app_close{
+    DLog(@"%@",@"程序关闭");
+    exit(0);
+}
+
+- (void)web_go_back{
+    if ([self.myWebView canGoBack]) {
+        
+        [self.myWebView goBack];
+        if (returnNum == 0) {
+            NSURL *url = [NSURL URLWithString:@"http://msptest.zjmicon.com/index.aspx"];
+            [self.myWebView loadRequest:[NSURLRequest requestWithURL:url cachePolicy:NSURLRequestReloadIgnoringLocalCacheData timeoutInterval:5.0]];
+            returnNum ++;
+        }
+    }
+}
+
+- (void)db_insert:(NSString *)name :(NSString *)value{
+    DLog(@"\n插入数据名称---%@\n插入数据    ---%@",name,value);
+    [DatabaseOperations deleteDataWithName:name];
+    [DatabaseOperations insertDataWithName:name withValue:value];
+}
+
+-(void)db_delete:(NSString *)name{
+    DLog(@"删除数据");
+    [DatabaseOperations deleteDataWithName:name];
+}
+
+- (void)db_update:(NSString *)name :(NSString *)value{ // 更新数据
+    DLog(@"更新数据");
+    [DatabaseOperations updateDataWithName:name withValue:value];
+}
+
+- (NSString *)db_select_all{ //查询所有数据，返回JSON格式（id，name，value，time）
+    DLog(@"查询所有数据，返回JSON格式（id，name，value，time）");
+    NSArray *dataArr = [DatabaseOperations getAll];
+    NSString *dataStr = dataArr.toJSON;
+    return dataStr;
+}
+
+- (NSString *)db_select_value_string:(NSString *)name{ // 查询某一条数据 -->返回json格式
+    DLog(@"查询某一条数据 -->返回json格式");
+    NSDictionary *dataDict = [DatabaseOperations selectValueWhithName:name];
+    NSString *dataStr = dataDict.toJSON;
+    return dataStr;
+}
+
+- (NSString *) db_select_value_single:(NSString *)name{ // 查询某一条消息，返回字符串，返回值为value的值（非JSON，纯结果）
+    DLog(@"查询某一条消息，返回字符串，返回值为value的值（非JSON，纯结果）");
+    
+    return [DatabaseOperations selectValueWhithSingleName:name];
+}
+
+- (void)saveUser:(NSString *)name :(NSString *)password{ // 保存用户
+    DLog(@"保存用户");
+    [DatabaseOperations clearUser];
+    [DatabaseOperations saveUserWithUserName:name WithUserPassWord:password];
+}
+
+- (void)clearUser{ // 清除用户
+    DLog(@"清除用户");
+    [DatabaseOperations clearUser];
+}
+
+- (NSString *)getUser{ // 获取最新的已保存的用户，返回JSON格式（id，name-用户名，value-密码，time）
+    DLog(@"获取最新的已保存的用户，返回JSON格式（id，name-用户名，value-密码，time）");
+    NSDictionary *dict = [DatabaseOperations getUser];
+    return dict.toJSON;
+}
+
+- (void)set_notify_open{
+    DLog(@"通知打开");
+    [DatabaseOperations setNotifyOpenWithVale:@"1"];
+}
+
+- (void)set_notify_close{
+    DLog(@"通知关闭");
+    [DatabaseOperations setNotifyCloseWithVale:@"0"];
+}
+
+- (NSString *)get_notify_state{
+    DLog(@"获取通知状态");
+    return [DatabaseOperations getNotifyState];
+}
+
+- (void)set_can_callback{
+    DLog(@"设置可以callback");
+    [[NSUserDefaults standardUserDefaults] setValue:@"TRUE" forKey:self.theNextPageUrlStr];
+}
+
+- (void)set_no_callback{
+    DLog(@"设置不可以callback");
+    [[NSUserDefaults standardUserDefaults] setValue:@"FALSE" forKey:self.theNextPageUrlStr];
+}
+
+- (void)setExtparam:(NSString *)extpatam{
+    DLog(@"存储身份信息");
+    [DatabaseOperations setExtparamWithString:extpatam];
+}
+
+- (void)deleteExtparam{
+    DLog(@"删除身份信息");
+    [DatabaseOperations deleteExtparam];
+}
+
+- (NSString *)getExtparam{
+    DLog(@"获取身份信息");
+    NSString *extparam = [DatabaseOperations getExtparam];
+    return extparam;
+}
+
+- (void)setWebServiceURL:(NSString *)serviceURL{
+    DLog(@"存储Webs的URL");
+    [DatabaseOperations setWebServiceURL:serviceURL];
+}
+
+- (void)deleteWebServiceURL{
+    DLog(@"删除Webs的URL");
+    [DatabaseOperations deleteWebServiceURL];
+}
+
+- (NSString *)getWebServiceURL{
+    DLog(@"获取Webs的URL");
+    NSString *webServiceUrl = [DatabaseOperations getWebServiceURL];
+    return webServiceUrl;
+}
+
+- (NSString *)get_app_version{
+    DLog(@"获取软件版本号");
+    NSString *bundleStr = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleShortVersionString"];
+    NSString *returnBundleStr = [NSString stringWithFormat:@"ios_%@",bundleStr];
+    return returnBundleStr;
+}
+//上传图片的时候上传地理位置
+- (void)choosePhoneImageWithAddress:(NSString *)funtionName {
+    self.callbcakFunctionName = funtionName;
+    uploadLocation = YES;
+    dispatch_async(dispatch_get_main_queue(), ^{
+        // 更UI
+        UIActionSheet *actionSheet = [[UIActionSheet alloc] initWithTitle:nil delegate:self cancelButtonTitle:@"取消" destructiveButtonTitle:nil otherButtonTitles:@"拍照",@"从手机相册选择", nil];
+        actionSheet.tag = 101;
+        [actionSheet showFromBarButtonItem:self.navigationItem.rightBarButtonItem animated:YES];
+    });
+}
+#pragma mark - JS调用的获取图片的方法
+- (void)choosePhoneImage:(NSString *)functionName{
+    NSLog(@"functionName%@", functionName);
+    self.callbcakFunctionName = functionName;
+    dispatch_async(dispatch_get_main_queue(), ^{
+        // 更UI
+        UIActionSheet *actionSheet = [[UIActionSheet alloc] initWithTitle:nil delegate:self cancelButtonTitle:@"取消" destructiveButtonTitle:nil otherButtonTitles:@"拍照",@"从手机相册选择", nil];
+        actionSheet.tag = 101;
+        [actionSheet showFromBarButtonItem:self.navigationItem.rightBarButtonItem animated:YES];
+    });
+    
+}
+#pragma mark - Action sheet delegate
+- (void)actionSheet:(UIActionSheet *)actionSheet clickedButtonAtIndex:(NSInteger)buttonIndex{
+    positioning = NO;
+    self.manager = [[CLLocationManager alloc] init];
+    _manager.delegate = self;
+    // 请求授权，记得修改的infoplist，NSLocationAlwaysUsageDescription（描述）
+    [_manager requestAlwaysAuthorization];
+    
+    if (actionSheet.tag == 101) {
+        NSInteger index = actionSheet.firstOtherButtonIndex;
+        if (buttonIndex == index){
+            UIImagePickerController *picker = [[UIImagePickerController alloc] init];
+            picker.delegate = self;
+            [picker setMediaTypes:@[(NSString *)kUTTypeImage]];
+            if ([UIImagePickerController isSourceTypeAvailable:UIImagePickerControllerSourceTypeCamera]) {
+                AVAuthorizationStatus authStatus = [AVCaptureDevice authorizationStatusForMediaType:AVMediaTypeVideo];
+                if (authStatus == AVAuthorizationStatusRestricted || authStatus ==AVAuthorizationStatusDenied)
+                {
+                    //无权限
+                    UIAlertView *alert = [[UIAlertView alloc] initWithTitle:nil message:@"无法打开相机,请到设置打开权限!" delegate:nil cancelButtonTitle:@"确定" otherButtonTitles: nil];
+                    [alert show];
+                }else {
+                    if([[[UIDevice currentDevice] systemVersion] floatValue]>=8.0) {
+                        self.modalPresentationStyle=UIModalPresentationOverCurrentContext;
+                    }
+                    [picker setSourceType:UIImagePickerControllerSourceTypeCamera];
+                    [self presentViewController:picker animated:YES completion:nil];
+                }
+            }else{
+                UIAlertView *alert = [[UIAlertView alloc] initWithTitle:nil message:@"该设备无法使用此功能" delegate:nil cancelButtonTitle:@"确定" otherButtonTitles: nil];
+                [alert show];
+            }
+            
+        }else if (buttonIndex == index + 1){
+            QBImagePickerController *imagePickerController = [[QBImagePickerController alloc] init];
+            imagePickerController.delegate = self;
+            imagePickerController.allowsMultipleSelection = YES;
+            imagePickerController.limitsMaximumNumberOfSelection = YES;
+            imagePickerController.maximumNumberOfSelection = 1;
+            UINavigationController *navigationController = [[UINavigationController alloc] initWithRootViewController:imagePickerController];
+            [self presentViewController:navigationController animated:YES completion:NULL];
+        }
+    }
+}
+#pragma mark - Image picker controller delegate
+- (void)imagePickerController:(UIImagePickerController *)picker didFinishPickingMediaWithInfo:(NSDictionary *)info{
+    imageArray = [NSMutableArray array];
+    [imageArray addObject:info[@"UIImagePickerControllerOriginalImage"]];
+    [self saveImageToPhotos:imageArray[0]];
+    [self imageWithUrl:nil withFileName:@"tempFile" withImage:imageArray[0]];
+    //    [self reloadImages];
+    [self dismissViewControllerAnimated:YES completion:nil];
+}
+- (void)saveImageToPhotos:(UIImage*)savedImage {
+    UIImageWriteToSavedPhotosAlbum(savedImage, self, @selector(image:didFinishSavingWithError:contextInfo:), NULL);
+}
+// 指定回调方法
+- (void)image: (UIImage *) image didFinishSavingWithError: (NSError *) error contextInfo: (void *) contextInfo {
+    
+    NSString *msg = nil ;
+    if(error != NULL){
+        msg = @"保存图片失败" ;
+    }else{
+        msg = @"保存图片成功" ;
+    }
+    
+}
+
+- (void)imagePickerControllerDidCancel:(QBImagePickerController *)imagePickerController {
+    DLog(@"Cancelled");
+    
+    [self dismissViewControllerAnimated:YES completion:NULL];
+}
+
+- (NSString *)descriptionForSelectingAllAssets:(QBImagePickerController *)imagePickerController {
+    
+    return @"选择所有的照片";
+}
+
+- (NSString *)descriptionForDeselectingAllAssets:(QBImagePickerController *)imagePickerController {
+    
+    return @"取消所有选择照片";
+}
+
+- (NSString *)imagePickerController:(QBImagePickerController *)imagePickerController descriptionForNumberOfPhotos:(NSUInteger)numberOfPhotos {
+    
+    return [NSString stringWithFormat:@"照片%lu张", (unsigned long)numberOfPhotos];
+}
+
+- (NSString *)imagePickerController:(QBImagePickerController *)imagePickerController descriptionForNumberOfVideos:(NSUInteger)numberOfVideos {
+    return [NSString stringWithFormat:@"相册%lu本", (unsigned long)numberOfVideos];
+}
+
+- (NSString *)imagePickerController:(QBImagePickerController *)imagePickerController descriptionForNumberOfPhotos:(NSUInteger)numberOfPhotos numberOfVideos:(NSUInteger)numberOfVideos {
+    return [NSString stringWithFormat:@"照片%lu张、相册%lu本", (unsigned long)numberOfPhotos, (unsigned long)numberOfVideos];
+}
+#pragma mark - QBImagePickerControllerDelegate 得到选择的图片数据
+- (void)qbimagePickerController:(QBImagePickerController *)imagePickerController didFinishPickingMediaWithInfo:(id)info {
+    imageArray = [NSMutableArray array];
+    if(imagePickerController.allowsMultipleSelection) {
+        NSArray *mediaInfoArray = (NSArray *)info;
+        for (NSDictionary *dic in mediaInfoArray) {
+            [imageArray addObject:dic[@"UIImagePickerControllerOriginalImage"]];
+            [self imageWithUrl:dic[@"UIImagePickerControllerReferenceURL"] withFileName:@"tempFile" withImage:nil];
+        }
+        DLog(@"Selected %lu photos", (unsigned long)mediaInfoArray.count);
+    } else {
+        NSDictionary *mediaInfo = (NSDictionary *)info;
+        [imageArray addObject:mediaInfo[@"UIImagePickerControllerOriginalImage"]];
+        [self imageWithUrl:mediaInfo[@"UIImagePickerControllerReferenceURL"] withFileName:@"tempFile" withImage:nil];
+        DLog(@"Selected: %@", mediaInfo);
+    }
+    [imagePickerController dismissViewControllerAnimated:YES completion:nil];
+}
+#pragma mark - ZYQAssetPickerControllerDelegate
+- (void)assetPickerController:(ZYQAssetPickerController *)picker didFinishPickingAssets:(NSArray *)assets {
+    DLog(@"%@",assets);
+    //获取资源图片的详细资源信息
+    ALAssetRepresentation* representation = [assets[0] defaultRepresentation];
+    
+    //资源图片url地址，该地址和ALAsset通过ALAssetPropertyAssetURL获取的url地址是一样的
+    ALAsset *asset = assets[0];
+    NSString * nsALAssetPropertyURLs = [asset valueForProperty:ALAssetPropertyAssetURL] ;
+    NSURL* url = [representation url];
+    
+    [self imageWithUrl:url withFileName:@"tempFile" withImage:nil];
+    DLog(@"%@  --大小%lld---图片名称%@",url,[representation size],[representation filename]);
+    
+}
+// 将原始图片的URL转化为NSData数据,写入沙盒
+- (void)imageWithUrl:(NSURL *)url withFileName:(NSString *)fileName withImage:(UIImage *)image {
+    // 进这个方法的时候也应该加判断,如果已经转化了的就不要调用这个方法了
+    // 如何判断已经转化了,通过是否存在文件路径
+    ALAssetsLibrary *assetLibrary = [[ALAssetsLibrary alloc] init];
+    // 创建存放原始图的文件夹--->OriginalPhotoImages
+    NSFileManager * fileManager = [NSFileManager defaultManager];
+    if (![fileManager fileExistsAtPath:KOriginalPhotoImagePath]) {
+        [fileManager createDirectoryAtPath:KOriginalPhotoImagePath withIntermediateDirectories:YES attributes:nil error:nil];
+    }
+    if ([Is EmptyOrNullString:url]) {
+        NSData *imageData = UIImageJPEGRepresentation(image, 1.0);
+        NSString * imagePath = [KOriginalPhotoImagePath stringByAppendingPathComponent:fileName];
+        [imageData writeToFile:imagePath atomically:YES];
+        if (uploadLocation) {
+            uploadLocation = NO;
+            [self.myWebView stringByEvaluatingJavaScriptFromString:[NSString stringWithFormat:@"%@(['%@','%@']);",self.callbcakFunctionName,imagePath,self.locationStr]];
+        }else {
+            [self.myWebView stringByEvaluatingJavaScriptFromString:[NSString stringWithFormat:@"%@('%@');",self.callbcakFunctionName,imagePath]];
+        }
+
+    }else {
+        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+            if (url) {
+                // 主要方法
+                [assetLibrary assetForURL:url resultBlock:^(ALAsset *asset) {
+                    ALAssetRepresentation *rep = [asset defaultRepresentation];
+                    Byte *buffer = (Byte*)malloc((unsigned long)rep.size);
+                    NSUInteger buffered = [rep getBytes:buffer fromOffset:0.0 length:((unsigned long)rep.size) error:nil];
+                    NSData *data = [NSData dataWithBytesNoCopy:buffer length:buffered freeWhenDone:YES];
+                    NSString * imagePath = [KOriginalPhotoImagePath stringByAppendingPathComponent:fileName];
+                    [data writeToFile:imagePath atomically:YES];
+                    self.imageIsSave = YES;
+                    dispatch_async(dispatch_get_main_queue(), ^{
+                        // 更UI
+                        // 这里的代码会在主线程执行
+                        if (uploadLocation) {
+                            uploadLocation = NO;
+                               [self.myWebView stringByEvaluatingJavaScriptFromString:[NSString stringWithFormat:@"%@(['%@','%@']);",self.callbcakFunctionName,imagePath,self.locationStr]];
+                        }else {
+                          [self.myWebView stringByEvaluatingJavaScriptFromString:[NSString stringWithFormat:@"%@('%@');",self.callbcakFunctionName,imagePath]];
+                        }
+                    });
+                } failureBlock:nil];
+            }
+        });
+    }
+}
+
+- (NSString *)getTailoringCompressImageBase64:(NSString *)path :(BOOL)isNeedTailoring :(double)percentageStartX :(double)percentageStartY :(double)percentageWidth :(double)percentageHeight {
+    DLog(@"path=%@-------isNeedTailoring=%d-------percentageStartX=%f-------percentageStartY=%f-------percentageWidth=%f-------percentageHeight=%f",path,isNeedTailoring,percentageStartX,percentageStartY,percentageWidth,percentageHeight);
+    
+    if (isNeedTailoring) {
+        //        NSLog(@"%@",path);
+        UIImage *appleImage = [[UIImage alloc] initWithContentsOfFile:path];
+        CGSize dimension = appleImage.size;
+        CGRect rect = CGRectMake(dimension.width *percentageStartX, dimension.height *percentageStartY, dimension.width *percentageWidth, dimension.height *percentageHeight);
+        UIImage *finalImage = [self getPartOfImage:[self fixOrientation:appleImage] rect:rect];
+        NSData *finalData = UIImageJPEGRepresentation(finalImage, 1.0);
+        NSString *base64Str = [self base64EncodedStringFrom:finalData];
+        
+        NSFileManager * fileManager = [NSFileManager defaultManager];
+        [fileManager removeItemAtPath:path error:nil];
+        //        NSLog(@"%@ -- %@ -- %@ -- %lu -- \n\n\n%@",path,appleImage,finalImage,(unsigned long)finalData.length,base64Str);
+        return base64Str;
+    }else {
+        UIImage *appleImage = [[UIImage alloc] initWithContentsOfFile:path];
+        NSData *finalData = UIImageJPEGRepresentation([self fixOrientation:appleImage], 0.1);
+        NSString *base64Str = [self base64EncodedStringFrom:finalData];
+        NSFileManager * fileManager = [NSFileManager defaultManager];
+        [fileManager removeItemAtPath:path error:nil];
+        return base64Str;
+    }
+    return nil;
+}
+
+- (UIImage *)fullResolutionImageFromALAsset:(ALAsset *)asset {
+    ALAssetRepresentation *assetRep = [asset defaultRepresentation];
+    CGImageRef imgRef = [assetRep fullResolutionImage];
+    UIImage *img = [UIImage imageWithCGImage:imgRef
+                                       scale:assetRep.scale
+                                 orientation:(UIImageOrientation)assetRep.orientation];
+    return img;
+}
+//图片方向纠正
+- (UIImage *)fixOrientation:(UIImage *)srcImg {
+    if (srcImg.imageOrientation == UIImageOrientationUp) return srcImg;
+    CGAffineTransform transform = CGAffineTransformIdentity;
+    switch (srcImg.imageOrientation) {
+        case UIImageOrientationDown:
+        case UIImageOrientationDownMirrored:
+            transform = CGAffineTransformTranslate(transform, srcImg.size.width, srcImg.size.height);
+            transform = CGAffineTransformRotate(transform, M_PI);
+            break;
+            
+        case UIImageOrientationLeft:
+        case UIImageOrientationLeftMirrored:
+            transform = CGAffineTransformTranslate(transform, srcImg.size.width, 0);
+            transform = CGAffineTransformRotate(transform, M_PI_2);
+            break;
+            
+        case UIImageOrientationRight:
+        case UIImageOrientationRightMirrored:
+            transform = CGAffineTransformTranslate(transform, 0, srcImg.size.height);
+            transform = CGAffineTransformRotate(transform, -M_PI_2);
+            break;
+        case UIImageOrientationUp:
+        case UIImageOrientationUpMirrored:
+            break;
+    }
+    
+    switch (srcImg.imageOrientation) {
+        case UIImageOrientationUpMirrored:
+        case UIImageOrientationDownMirrored:
+            transform = CGAffineTransformTranslate(transform, srcImg.size.width, 0);
+            transform = CGAffineTransformScale(transform, -1, 1);
+            break;
+            
+        case UIImageOrientationLeftMirrored:
+        case UIImageOrientationRightMirrored:
+            transform = CGAffineTransformTranslate(transform, srcImg.size.height, 0);
+            transform = CGAffineTransformScale(transform, -1, 1);
+            break;
+        case UIImageOrientationUp:
+        case UIImageOrientationDown:
+        case UIImageOrientationLeft:
+        case UIImageOrientationRight:
+            break;
+    }
+    
+    CGContextRef ctx = CGBitmapContextCreate(NULL, srcImg.size.width, srcImg.size.height,
+                                             CGImageGetBitsPerComponent(srcImg.CGImage), 0,
+                                             CGImageGetColorSpace(srcImg.CGImage),
+                                             CGImageGetBitmapInfo(srcImg.CGImage));
+    CGContextConcatCTM(ctx, transform);
+    switch (srcImg.imageOrientation) {
+        case UIImageOrientationLeft:
+        case UIImageOrientationLeftMirrored:
+        case UIImageOrientationRight:
+        case UIImageOrientationRightMirrored:
+            CGContextDrawImage(ctx, CGRectMake(0,0,srcImg.size.height,srcImg.size.width), srcImg.CGImage);
+            break;
+            
+        default:
+            CGContextDrawImage(ctx, CGRectMake(0,0,srcImg.size.width,srcImg.size.height), srcImg.CGImage);
+            break;
+    }
+    
+    CGImageRef cgimg = CGBitmapContextCreateImage(ctx);
+    UIImage *img = [UIImage imageWithCGImage:cgimg];
+    CGContextRelease(ctx);
+    CGImageRelease(cgimg);
+    return img;
+}
+//截取一张完整的图片 img：截取的对象 partRect：截取的大小
+- (UIImage *)getPartOfImage:(UIImage *)img rect:(CGRect)partRect {
+    CGImageRef imageRef = img.CGImage;
+    CGImageRef imagePartRef = CGImageCreateWithImageInRect(imageRef, partRect);
+    UIImage *retImg = [UIImage imageWithCGImage:imagePartRef];
+    CGImageRelease(imagePartRef);
+    return retImg;
+}
+//base64加密
+- (NSString *)base64EncodedStringFrom:(NSData *)data {
+    if ([data length] == 0)
+        return @"";
+    char *characters = malloc((([data length] + 2) / 3) * 4);
+    if (characters == NULL)
+        return nil;
+    NSUInteger length = 0;
+    NSUInteger i = 0;
+    while (i < [data length])
+    {
+        char buffer[3] = {0,0,0};
+        short bufferLength = 0;
+        while (bufferLength < 3 && i < [data length])
+            buffer[bufferLength++] = ((char *)[data bytes])[i++];
+        
+        //  Encode the bytes in the buffer to four characters, including padding "=" characters if necessary.
+        characters[length++] = encodingTable[(buffer[0] & 0xFC) >> 2];
+        characters[length++] = encodingTable[((buffer[0] & 0x03) << 4) | ((buffer[1] & 0xF0) >> 4)];
+        if (bufferLength > 1)
+            characters[length++] = encodingTable[((buffer[1] & 0x0F) << 2) | ((buffer[2] & 0xC0) >> 6)];
+        else characters[length++] = '=';
+        if (bufferLength > 2)
+            characters[length++] = encodingTable[buffer[2] & 0x3F];
+        else characters[length++] = '=';
+    }
+    return [[NSString alloc] initWithBytesNoCopy:characters length:length encoding:NSASCIIStringEncoding freeWhenDone:YES];
+}
+
+- (void)getAdressInfo:(NSString *)functionName{
+    NSLog(@"functionName%@", functionName);
+    positioning = YES;
+    // 实例化对象
+    self.manager = [[CLLocationManager alloc] init];
+    _manager.delegate = self;
+    // 请求授权，记得修改的infoplist，NSLocationAlwaysUsageDescription（描述）
+    [_manager requestAlwaysAuthorization];
+}
+#pragma mark - 代理方法，当授权改变时调用
+- (void)locationManager:(CLLocationManager *)manager didChangeAuthorizationStatus:(CLAuthorizationStatus)status {
+    // 获取授权后，通过
+    if (status == kCLAuthorizationStatusAuthorizedAlways) {
+        //开始定位(具体位置要通过代理获得)
+        [_manager startUpdatingLocation];
+        //设置精确度
+        _manager.desiredAccuracy = kCLLocationAccuracyBestForNavigation;
+        //设置过滤距离
+        _manager.distanceFilter = 1000;
+        //开始定位方向
+        [_manager startUpdatingHeading];
+    }
+}
+#pragma mark - 方向
+- (void)locationManager:(CLLocationManager *)manager didUpdateHeading:(CLHeading *)newHeading {
+//    //输出方向
+//    //地理方向
+//    NSLog(@"true = %f ",newHeading.trueHeading);
+//    // 磁极方向
+//    NSLog(@"mag = %f",newHeading.magneticHeading);
+}
+
+#pragma mark - 定位代理
+- (void)locationManager:(CLLocationManager *)manager didUpdateLocations:(NSArray *)locations {
+    NSLog(@"%@",locations);
+    //获取当前位置
+    CLLocation *location = manager.location;
+    //获取坐标
+    CLLocationCoordinate2D corrdinate = location.coordinate;
+    //打印地址
+    
+    NSMutableDictionary *URL_DIC = [NSMutableDictionary dictionary];
+    URL_DIC[@"longtude"] = [NSString stringWithFormat:@"%f", corrdinate.longitude];
+    URL_DIC[@"latitude"] = [NSString stringWithFormat:@"%f", corrdinate.latitude];
+    NSError *parseError = nil;
+    
+    NSData *jsonData = [NSJSONSerialization dataWithJSONObject:URL_DIC options:NSJSONWritingPrettyPrinted error:&parseError];
+    NSString *strDic = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+    strDic =    [strDic  stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
+    strDic = [strDic stringByReplacingOccurrencesOfString:@" " withString:@""];
+    strDic = [strDic stringByReplacingOccurrencesOfString:@"\n" withString:@""];
+    NSLog(@"latitude = %f longtude = %f strDic%@",corrdinate.latitude,corrdinate.longitude, strDic);
+    self.locationStr = strDic;
+    if (positioning) {
+        // 这里的代码会在主线程执行
+        [self.myWebView stringByEvaluatingJavaScriptFromString:[NSString stringWithFormat:@"showAdress('%@');",strDic]];
+        positioning = NO;
+    }
+    
+    //停止定位
+    _manager.delegate = nil;
+    [_manager stopUpdatingLocation];
+}
+#pragma mark JS调用二维码扫描接口
+- (void)codeScan:(NSString *)functionName {
+    self.callbcakFunctionName = functionName;
+    ScanViewController *VC = [[ScanViewController alloc] init];
+    [self.navigationController pushViewController:VC animated:YES];
+}
+//上传二维码扫描出来的结果
+- (void)callback{
+    [self.myWebView stringByEvaluatingJavaScriptFromString:self.callbcakFunctionName];
+}
+
+- (void)ScanResults:(NSString *)URL {
+
+}
+@end
+
+
+
+
+
