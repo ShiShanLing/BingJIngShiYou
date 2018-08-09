@@ -69,7 +69,7 @@ static BOOL  uploadLocation;
 }
 
 - (void)viewWillAppear:(BOOL)animated{
-    //分支测试信息
+    //查看自定义图片编辑的实现
     [super viewWillAppear:animated];
     self.picker = [[UIImagePickerController alloc]init];
     self.picker.delegate = self;
