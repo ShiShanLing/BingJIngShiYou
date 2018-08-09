@@ -69,7 +69,7 @@ static BOOL  uploadLocation;
 }
 
 - (void)viewWillAppear:(BOOL)animated{
-    
+    //分支测试信息
     [super viewWillAppear:animated];
     self.picker = [[UIImagePickerController alloc]init];
     self.picker.delegate = self;
